@@ -39,8 +39,15 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE(DRIVER_LICENSE);
 
-#define USB_VENDOR_ID  0x0eef
-#define USB_DEVICE_ID  0x0005
+#define USB_VENDOR_ID   0x0eef
+#define USB_DEVICE_ID   0x0005
+
+#define FT5206_REGISTERS_NUM 7
+#define SCREEN_MAX_X 800
+#define SCREEN_MAX_Y 480
+#define PRESS_MAX  200
+
+// #define CONFIG_USE_MULTITOUCH
 
 
 struct usb_eleduino_ts {
@@ -50,49 +57,46 @@ struct usb_eleduino_ts {
   struct input_dev *input_dev;
   struct urb *irq;
 
-  unsigned char* data;
+  u8 *data;
   dma_addr_t data_dma;
 };
 
+
 static void usb_eleduino_ts_irq(struct urb *urb){
+  
+  int status;
 
   struct usb_eleduino_ts *eleduino_ts = urb->context;
-  unsigned char *data = eleduino_ts->data;
+  u8 *data = eleduino_ts->data;
   struct input_dev *dev = eleduino_ts->input_dev;
-  int status;
-  unsigned int x, y, touch;
+  int x, y, pressure, touchpoints;
 
   printk(KERN_ALERT "usb_eleduino_ts_irq");
 
-  // switch(urb->status){
-  //   case 0: break;
-  //   case -ECONNRESET:
-  //   case -ENOENT:
-  //   case -ESHUTDOWN:
-  //     printk(KERN_ALERT "%s - urb shutting down with status: %d", __FUNCTION__, urb->status);
-  //     return;
-  //   default:
-  //     printk(KERN_ALERT "%s - nonzero urb status received: %d", __FUNCTION__, urb->status);
-  //     goto resubmit;
-  // }
 
-  x = data[1];
-  y = data[2];
-  touch = data[0];
+  touchpoints = data[2] & 0x07;
+  printk(KERN_ALERT "touchpoints %d", touchpoints);
+
+  x = (int)(data[3] & 0x0F) << 8 | (int)data[4];
+  y = (int)(data[5] & 0x0F) << 8 | (int)data[6];
+  pressure = 200;
 
   input_report_abs(dev, ABS_X, x);
   input_report_abs(dev, ABS_Y, y);
-  input_report_key(dev, BTN_LEFT, touch);
+  input_report_abs(dev, ABS_PRESSURE, pressure);
+  input_report_key(dev, BTN_TOUCH, 1);
+
   input_sync(dev);
 
-  printk(KERN_ALERT "usb_eleduino_ts_irq: x:[%d] y:[%d] t:[%d]", x, y, touch);
-
-resubmit:
   status = usb_submit_urb(urb, GFP_ATOMIC);
-
   if (status)
-    printk(KERN_ALERT "can't resubmit intr, %s-%s/input0, status %d", eleduino_ts->usb_dev->bus->bus_name, eleduino_ts->usb_dev->devpath, status);
+    dev_err(&eleduino_ts->usb_dev->dev,
+      "can't resubmit intr, %s-%s/input0, status %d\n",
+      eleduino_ts->usb_dev->bus->bus_name,
+      eleduino_ts->usb_dev->devpath, status);
+
 }
+
 
 static int usb_eleduino_ts_open(struct input_dev *dev){
   struct usb_eleduino_ts *eleduino_ts = input_get_drvdata(dev);
@@ -150,7 +154,7 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
     goto fail1;
   }
 
-  eleduino_ts->data = usb_alloc_coherent(dev, 8, GFP_KERNEL, &eleduino_ts->data_dma);
+  eleduino_ts->data = usb_alloc_coherent(dev, FT5206_REGISTERS_NUM, GFP_KERNEL, &eleduino_ts->data_dma);
   if (!eleduino_ts->data){
     printk(KERN_ALERT "usb_eleduino_ts_probe: cannot allocate device data");
     err = -ENOMEM;
@@ -192,11 +196,26 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
   input_dev->open = usb_eleduino_ts_open;
   input_dev->close = usb_eleduino_ts_close;
 
-  input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
-  input_dev->relbit[0] = 0;
-  input_dev->absbit[0] = BIT_MASK(ABS_X) | BIT_MASK(ABS_Y);
+#ifdef CONFIG_USE_MULTITOUCH
+  printk(KERN_ALERT "use multitouch configuration]");
+#else
+  printk(KERN_ALERT "use onetouch configuration]");
+  set_bit(ABS_PRESSURE, input_dev->absbit);
+  set_bit(BTN_TOUCH, input_dev->keybit);
 
-  input_dev->keybit[BIT_WORD(BTN_LEFT)] = BIT_MASK(BTN_LEFT) | BIT_MASK(BTN_MIDDLE) | BIT_MASK(BTN_RIGHT);
+  input_set_abs_params(input_dev, ABS_X, 0, SCREEN_MAX_X, 0, 0);
+  input_set_abs_params(input_dev, ABS_Y, 0, SCREEN_MAX_Y, 0, 0);
+  input_set_abs_params(input_dev, ABS_PRESSURE, 0, PRESS_MAX, 0, 0);
+#endif
+
+  set_bit(EV_ABS, input_dev->evbit);
+  set_bit(EV_KEY, input_dev->evbit);
+
+  // input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+  // input_dev->relbit[0] = 0;
+  // input_dev->absbit[0] = BIT_MASK(ABS_X) | BIT_MASK(ABS_Y);
+
+  // input_dev->keybit[BIT_WORD(BTN_LEFT)] = BIT_MASK(BTN_LEFT) | BIT_MASK(BTN_MIDDLE) | BIT_MASK(BTN_RIGHT);
 
   if (!input_dev->absinfo)
     input_dev->absinfo = kcalloc(ABS_CNT, sizeof(struct input_absinfo), GFP_KERNEL);
@@ -218,7 +237,7 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
 
   return 0;
 
-fail2: usb_free_coherent(dev, 8, eleduino_ts->data, eleduino_ts->data_dma);
+fail2: usb_free_coherent(dev, FT5206_REGISTERS_NUM, eleduino_ts->data, eleduino_ts->data_dma);
 fail1: kfree(input_dev->absinfo);
   input_free_device(input_dev);
   kfree(eleduino_ts);
@@ -239,7 +258,7 @@ static void usb_eleduino_ts_disconnect(struct usb_interface *intf){
     usb_kill_urb(eleduino_ts->irq);
     input_unregister_device(eleduino_ts->input_dev);
     usb_free_urb(eleduino_ts->irq);
-    usb_free_coherent(interface_to_usbdev(intf), 10, eleduino_ts->data, eleduino_ts->data_dma);
+    usb_free_coherent(interface_to_usbdev(intf), FT5206_REGISTERS_NUM, eleduino_ts->data, eleduino_ts->data_dma);
     kfree(eleduino_ts);
   }
 }
