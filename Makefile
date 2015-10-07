@@ -1,3 +1,14 @@
+# Put "y" to activate debug messages
+DEBUG=y
+
+ifeq ($(DEBUG), y)
+	DEBFLAGS = -0 -g -PDEBUG
+else
+	DEBFLAGS = -O2
+endif
+
+EXCTRA_CFLAGS += $(DEBFLAGS)
+
 ifneq ($(KERNELRELEASE),)
 # call from kernel build system
 
