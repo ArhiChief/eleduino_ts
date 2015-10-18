@@ -46,22 +46,76 @@
 #define USB_DEVICE_ID   0x0005
 
 
+/*
+ *  The packet, that device sends to host has next structure
+ *
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Address | Register Name   | Bit7 | Bit6 | Bit5 | Bit4 | Bit3 | Bit2 | Bit1 | Bit0 | Host Access |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 00h | DEVICE_MODE     |      | Device_mode[2:0]   |                           | R / W       |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 01h | GEST_ID         | Gesture ID[7:0]                                       | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 02h | TD_STATUS       |                           | Number of touchpoints[3:0]| R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 03h | TOUCH1_XH       |1 Event Flag |             | 1st Touch Position[11:8]  | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 04h | TOUCH1_XL       | 1st Touch X Position [7:0]                            | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 05h | TOUCH1_YH       | 1st Touch ID[0:3]         | 1st Touch Position[11:8]  | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 06h | TOUCH1_YL       | 1st Touch Y Position [7:0]                            | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 07h |                 |                                                       | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 08h |                 |                                                       | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    |           4 other touch point has same structure and it's placed from 09h to 20h.               |
+ *    ---------------------------------------------------------------------------------------------------
+ *    
+ *     Device Mode:
+ *       * 000b - Normal operating mode;  
+ *       * 001b - System Information Mode (Reserved);
+ *       * 100b - Test Mode - read raw data (Reserved).
+ *
+ *     Gesture Id. This register describes the gesture of valid touch.
+ *       * 0x10 - Move UP;
+ *       * 0x14 - Move Left;
+ *       * 0x18 - Move Down;
+ *       * 0x1C - Move Right;
+ *       * 0x48 - Zoom In;
+ *       * 0x49 - Zoom Out;
+ *       * 0x00 - No Gesture;
+ *       
+ *    Number of touchpoints. 1-5 is valid
+ *
+ *    TOUCHn_XH. This register describes MSB of X coordinate of the nth touch point and corresponding event flag
+ *       * Event Flag
+ *       	- 00b - Put Down
+ *       	- 01b - Put Up
+ *       	- 10b - Contact
+ *       	- 11b - Reserved
+ *       * Touch Position[11:8] - MSB of Touch X Position in pixels
+ *       
+ *    TOUCHn_XH. This Register describes LSB If the X coordinate of nth touch point
+ *       * Touch X Position[7:0] LSB of the Touch X Position in pixels
+ *
+ *    TOUCHn_YH. This register describes the MSB of the Y coordinate of the nth touch point and corresponding touch ID
+ *       * Touch Id - TopuchID of Touch Point
+ *       * Touch Y Position - MSB of Y Position in pixels 
+ *
+ *    TOUCHn_YH. This Register describes LSB If the Y coordinate of nth touch point
+ *       * Touch Y Position[7:0] LSB of the Touch Y Position in pixels
+ *
+ */
 
 struct eleduino_ts_event {
-	u16 x1;
-	u16	y1;
-	u16 x2;
-	u16	y2;
-	u16 x3;
-	u16	y3;
-	u16 x4;
-	u16	y4;
-	u16 x5;
-	u16	y5;
-	u16 preasure;
-	u8 touch_point;
-};
+	
+} __atribute__ ((packed));
 
+
+
+/* The structure of the device */
 struct usb_eleduino_ts {
   char name[128];
   char phys[64];
@@ -69,7 +123,7 @@ struct usb_eleduino_ts {
   struct input_dev *input_dev;
   struct urb *irq;
   
-  struct eleduino_ts_event *data;
+  struct eleduino_ts_event  *data;
   dma_addr_t data_dma;
 };
 
