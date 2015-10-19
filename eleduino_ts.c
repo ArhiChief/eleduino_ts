@@ -290,6 +290,9 @@ static struct usb_driver usb_eleduino_ts_driver = {
 
 static int __init usb_eleduino_ts_init(void){
   int result = usb_register(&usb_eleduino_ts_driver);
+
+  KMSG_DEBUG("inside init");
+
   if (result == 0) {
     KMSG_INFO(DRIVER_VERSION "." DRIVER_DESC "\n");
   }
