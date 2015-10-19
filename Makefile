@@ -1,5 +1,10 @@
-# Put "y" to activate debug messages
+# Put "y" to activate debug mode. Put "n" overvise.
 DEBUG=y
+
+# Put "y" enable multitouch usability. Put "n" overvise.
+USE_MULTITOUCH=n
+
+
 
 ifeq ($(DEBUG), y)
 	DEBFLAGS = -0 -g -PDEBUG

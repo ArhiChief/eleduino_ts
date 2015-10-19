@@ -117,20 +117,21 @@ static void usb_eleduino_ts_irq(struct urb *urb){
   u16 x1, y1;
   u8 touchpoint_num = data[0x02] & 0x07;
 
+  KMSG_ALERT("touchpoints num: %i", touchpoint_num);
 
   if (touchpoint_num > 0) {
     x1 = ((u16)data[0x03] & 0x0F) << 8 | data[0x04];
     y1 = ((u16)data[0x05] & 0x0F) << 8 | data[0x06];
 
-      input_report_abs(input_dev, ABS_X, x1);
-      input_report_abs(input_dev, ABS_Y, y1);
-      input_report_abs(input_dev, ABS_PRESSURE, 200);
-      input_report_key(input_dev, BTN_TOUCH, 1);
-      input_sync(input_dev);
-    } else {
-      KMSG_ERROR("incorrect number of touchpoints: %i", touchpoint_num);
-    }
-    
+    input_report_abs(input_dev, ABS_X, x1);
+    input_report_abs(input_dev, ABS_Y, y1);
+    input_report_abs(input_dev, ABS_PRESSURE, 200);
+    input_report_key(input_dev, BTN_TOUCH, 1);
+    input_sync(input_dev);
+  } else {
+    KMSG_ERROR("incorrect number of touchpoints: %i", touchpoint_num);
+  }
+
   status = usb_submit_urb(urb, GFP_ATOMIC);
 
   if (status && &eleduino_ts->usb_dev->dev)
