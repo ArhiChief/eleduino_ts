@@ -28,7 +28,6 @@
 #include <linux/init.h>
 #include <linux/usb/input.h>
 #include <linux/usb.h>
-#include "eleduino_ts.h"
 
 #define DRIVER_VERSION "v0.0.1"
 #define DRIVER_DESC    "Eleduino tft 7inch display. USB touchscreen driver."
@@ -39,6 +38,73 @@ MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
 MODULE_LICENSE(DRIVER_LICENSE);
 
+#define USB_VENDOR_ID   0x0eef
+#define USB_DEVICE_ID   0x0005
+
+/* Put message into kernel journal */
+#define KMSG( alert_lvl, fmt, args... ) printk(alert_lvl KBUILD_MODNAME ": " fmt, ##args);
+
+#define KMSG_INFO(fmt, args...) KMSG(KERN_INFO, fmt, ##args)
+#define KMSG_WARN(fmt, args...) KMSG(KERN_WARNING, fmt, ##args)
+#define KMSG_ALERT(fmt, args...) KMSG(KERN_ALERT, fmt, ##args)
+#define KMSG_ERROR(fmt, args...) KMSG(KERN_ERR, fmt, ##args)
+
+#ifndef PDEBUG
+ #define KMSG_DEBUG(fmt, args...) KMSG(KERN_DEBUG, "%s::%i " fmt, __FUNCTION__, __LINE__,  ##args)
+#else
+ #define KMSG_DEBUG(fmt, args...)
+#endif /* PDEBUG */
+
+
+
+#ifndef USE_MULTITOUCH
+ #define USE_MULTITOUCH 1
+ #define URB_PACKET_SIZE 0x20
+#else
+ #define USE_MULTITOUCH 0
+ #define URB_PACKET_SIZE 0x6
+#endif
+
+/*
+ *  The packet, that device sends to host has next structure. For more details see FT5206.pdf
+ *
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Address | Register Name   | Bit7 | Bit6 | Bit5 | Bit4 | Bit3 | Bit2 | Bit1 | Bit0 | Host Access |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 00h | DEVICE_MODE     |      | Device_mode[2:0]   |                           | R / W       |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 01h | GEST_ID         | Gesture ID[7:0]                                       | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 02h | TD_STATUS       |                           | Number of touchpoints[3:0]| R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 03h | TOUCH1_XH       |1 Event Flag |             | 1st Touch Position[11:8]  | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 04h | TOUCH1_XL       | 1st Touch X Position [7:0]                            | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 05h | TOUCH1_YH       | 1st Touch ID[0:3]         | 1st Touch Position[11:8]  | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 06h | TOUCH1_YL       | 1st Touch Y Position [7:0]                            | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 07h |                 |                                                       | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    | Op, 08h |                 |                                                       | R           |
+ *    ---------------------------------------------------------------------------------------------------
+ *    |           4 other touchpoint has same structure and it's placed from 09h to 20h.               |
+ *    ---------------------------------------------------------------------------------------------------
+ *    
+ */
+
+/* The structure of the device */
+struct usb_eleduino_ts {
+  char name[128];
+  char phys[64];
+  struct usb_device *usb_dev;
+  struct input_dev *input_dev;
+  struct urb *irq;
+  
+  u8 *data;
+  dma_addr_t data_dma;
+};
 
 
 static void usb_eleduino_ts_irq(struct urb *urb){
@@ -46,12 +112,27 @@ static void usb_eleduino_ts_irq(struct urb *urb){
   int status;
 
   struct usb_eleduino_ts *eleduino_ts = urb->context;
-  // struct eleduino_ts_event *data = eleduino_ts->data;
-  struct input_dev *dev = eleduino_ts->input_dev;
+  struct input_dev *input_dev = eleduino_ts->input_dev;
+  u8 *data = eleduino_ts->data;
+  u16 x1, y1;
+  u8 touchpoint_num = data[0x02] & 0x07;
 
-  input_sync(dev);
 
+  if (touchpoint_num > 0) {
+    x1 = ((u16)data[0x03] & 0x0F) << 8 | data[0x04];
+    y1 = ((u16)data[0x05] & 0x0F) << 8 | data[0x06];
+
+      input_report_abs(input_dev, ABS_X, x1);
+      input_report_abs(input_dev, ABS_Y, y1);
+      input_report_abs(input_dev, ABS_PRESSURE, 200);
+      input_report_key(input_dev, BTN_TOUCH, 1);
+      input_sync(input_dev);
+    } else {
+      KMSG_ERROR("incorrect number of touchpoints: %i", touchpoint_num);
+    }
+    
   status = usb_submit_urb(urb, GFP_ATOMIC);
+
   if (status && &eleduino_ts->usb_dev->dev)
     KMSG_ERROR("can't resubmit intr, %s-%s/input0, status %d\n",
       eleduino_ts->usb_dev->bus->bus_name,
@@ -109,7 +190,7 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
     goto fail1;
   }
 
-  eleduino_ts->data = usb_alloc_coherent(dev, sizeof(struct eleduino_ts_event), GFP_KERNEL, &eleduino_ts->data_dma);
+  eleduino_ts->data = usb_alloc_coherent(dev, URB_PACKET_SIZE, GFP_KERNEL, &eleduino_ts->data_dma);
   if (!eleduino_ts->data){
     KMSG_ERROR("cannot allocate device data");
     err = -ENOMEM;
@@ -149,7 +230,6 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
   input_dev->open = usb_eleduino_ts_open;
   input_dev->close = usb_eleduino_ts_close;
 
-  /* configure device */
 
   if (!input_dev->absinfo)
     input_dev->absinfo = kcalloc(ABS_CNT, sizeof(struct input_absinfo), GFP_KERNEL);
@@ -169,13 +249,12 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
 
   return 0;
 
-fail2: usb_free_coherent(dev, sizeof(struct eleduino_ts_event), eleduino_ts->data, eleduino_ts->data_dma);
+fail2: usb_free_coherent(dev, URB_PACKET_SIZE, eleduino_ts->data, eleduino_ts->data_dma);
 fail1: kfree(input_dev->absinfo);
   input_free_device(input_dev);
   kfree(eleduino_ts);
   KMSG_ERROR("no device found");
   return err;
-
 }
 
 static void usb_eleduino_ts_disconnect(struct usb_interface *intf){
@@ -188,7 +267,7 @@ static void usb_eleduino_ts_disconnect(struct usb_interface *intf){
     usb_kill_urb(eleduino_ts->irq);
     input_unregister_device(eleduino_ts->input_dev);
     usb_free_urb(eleduino_ts->irq);
-    usb_free_coherent(interface_to_usbdev(intf), sizeof(struct eleduino_ts_event), eleduino_ts->data, eleduino_ts->data_dma);
+    usb_free_coherent(interface_to_usbdev(intf), URB_PACKET_SIZE, eleduino_ts->data, eleduino_ts->data_dma);
     kfree(eleduino_ts);
   }
 }
@@ -210,8 +289,9 @@ static struct usb_driver usb_eleduino_ts_driver = {
 
 static int __init usb_eleduino_ts_init(void){
   int result = usb_register(&usb_eleduino_ts_driver);
-  if (result == 0)
+  if (result == 0) {
     KMSG_INFO(DRIVER_VERSION "." DRIVER_DESC "\n");
+  }
   return result;
 }
 
