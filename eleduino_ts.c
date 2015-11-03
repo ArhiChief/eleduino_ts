@@ -65,6 +65,13 @@ MODULE_LICENSE(DRIVER_LICENSE);
  #define URB_PACKET_SIZE 0x6
 #endif
 
+#define TOUCHSCREEN_MIN_X 0
+#define TOUCHSCREEN_MIN_Y 0
+#define TOUCHSCREEN_MAX_X 800
+#define TOUCHSCREEN_MAX_Y 480
+#define TOUCHSCREEN_MIN_PRESSURE 50
+#define TOUCHSCREEN_MAX_PRESSURE 200
+
 /*
  *  The packet, that device sends to host has next structure. For more details see FT5206.pdf
  *
@@ -117,7 +124,14 @@ static void usb_eleduino_ts_irq(struct urb *urb){
   u16 x1, y1;
   u8 touchpoint_num = data[0x02] & 0x07;
 
-  KMSG_ALERT("touchpoints num: %i", touchpoint_num);
+  KMSG_DEBUG("touchpoints num: %i", touchpoint_num);
+
+
+
+  /*
+   * probably we only need to activate task queue shedule here and submit urb 
+   * recive. but for now, I think, we can make all routine here.
+   */
 
   if (touchpoint_num > 0) {
     x1 = ((u16)data[0x03] & 0x0F) << 8 | data[0x04];
@@ -156,6 +170,14 @@ static void usb_eleduino_ts_close(struct input_dev *dev){
   struct usb_eleduino_ts *eleduino_ts = input_get_drvdata(dev);
 
   usb_kill_urb(eleduino_ts->irq);
+}
+
+static void inline usb_eleduino_ts_configure_input_dev(struct input_dev *input_dev) {
+  input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
+  input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+  input_set_abs_params(input_dev, ABS_X, TOUCHSCREEN_MIN_X, TOUCHSCREEN_MAX_X, 0, 0);
+  input_set_abs_params(input_dev, ABS_Y, TOUCHSCREEN_MIN_Y, TOUCHSCREEN_MAX_Y, 0, 0);
+  input_set_abs_params(input_dev, ABS_PRESSURE, TOUCHSCREEN_MIN_PRESSURE, TOUCHSCREEN_MAX_PRESSURE, 0, 0);
 }
 
 static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_device_id *id){
@@ -226,16 +248,19 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
   usb_to_input_id(dev, &input_dev->id);
   input_dev->dev.parent = &intf->dev;
 
+  
+
   input_set_drvdata(input_dev, eleduino_ts);
 
   input_dev->open = usb_eleduino_ts_open;
   input_dev->close = usb_eleduino_ts_close;
 
-
   if (!input_dev->absinfo)
     input_dev->absinfo = kcalloc(ABS_CNT, sizeof(struct input_absinfo), GFP_KERNEL);
   if (!input_dev->absinfo)
     KMSG_WARN("%s(): kcalloc() failed?\n", __FUNCTION__);
+
+  usb_eleduino_ts_configure_input_dev(input_dev);
 
   usb_fill_int_urb(eleduino_ts->irq, dev, pipe, eleduino_ts->data, maxp > 8 ? 8 : maxp, usb_eleduino_ts_irq, eleduino_ts, endpoint->bInterval);
 
