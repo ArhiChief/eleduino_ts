@@ -1,0 +1,36 @@
+#
+#  Copyright (c) 2015 ArhiChief
+#
+#  Eleduino 7 inch tft display USB touchscreen driver. Udevd rule.
+#
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+# Should you need to contact me, the author, you can do so either by
+# e-mail - mail your message to <arhichief@gmail.com>.
+#
+
+# By default, usbhid capture device before eleduino_ts, and eleduino_ts will 
+# not work. To prevent this scenario we need
+
+# 1. Unbind our device from usbhid:
+ATTRS{idVendor}=="0eef", ATTRS{idProduct}=="0005", DRIVER=="usbhid", RUN="/bin/sh -c 'echo -n $kernel > /sys/bus/usb/drivers/usbhid/unbind'"
+
+# 2. Bind device to eleduino_ts driver:
+ATTRS{idVENDOR}=="0eef", ATTRS{idProduct}=="0005", RUN="/bin/sh -c 'echo -n $attr{idVendor} $attr{idProduct} > /sys/bus/usb/drivers/eleduino_ts/new_id'"
+
+# 3. Change access to new event device, created by eleduino_ts to grant access 
+# for it for to another programs:
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0eef", ATTRS{idProduct}=="0005", MODE="0660"
