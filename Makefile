@@ -13,7 +13,7 @@
  # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  #
  # Should you need to contact me, the author, you can do so either by
- # e-mail - mail your message to <varhichief@gmail.com>.
+ # e-mail - mail your message to <arhichief@gmail.com>.
  
 
 # Put "y" to activate debug mode. Put "n" overvise.
@@ -25,7 +25,9 @@ DEBUG=y
 #		if no HID_MULTITOUCH defined in kernel build stage.
 USE_MULTITOUCH=n
 
-
+VERSIONFILE = $(INCLUDEDIR)/linux/version.h
+VERSION     = $(shell awk -F\" '/REL/ {print $$2}' $(VERSIONFILE))
+INSTALLDIR = /lib/modules/$(VERSION)/misc
 
 ifeq ($(DEBUG), y)
 	DEBFLAGS = -g -DDEBUG
@@ -70,3 +72,7 @@ endif
 rebuild:
 	make clean
 	make
+
+install:
+	install -d $(INSTALLDIR)
+	install -c eleduino_ts.ko $(INSTALLDIR)
