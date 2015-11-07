@@ -29,7 +29,7 @@
 ATTRS{idVendor}=="0eef", ATTRS{idProduct}=="0005", DRIVER=="usbhid", RUN="/bin/sh -c 'echo -n $kernel > /sys/bus/usb/drivers/usbhid/unbind'"
 
 # 2. Bind device to eleduino_ts driver:
-ATTRS{idVENDOR}=="0eef", ATTRS{idProduct}=="0005", RUN="/bin/sh -c 'echo -n $attr{idVendor} $attr{idProduct} > /sys/bus/usb/drivers/eleduino_ts/new_id'"
+ATTRS{idVENDOR}=="0eef", ATTRS{idProduct}=="0005", RUN="/bin/sh -c 'echo -n '0eef 0005' > /sys/bus/usb/drivers/eleduino_ts/new_id'"
 
 # 3. Change access to new event device, created by eleduino_ts to grant access 
 # for it for to another programs:

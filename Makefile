@@ -25,9 +25,6 @@ DEBUG=y
 #		if no HID_MULTITOUCH defined in kernel build stage.
 USE_MULTITOUCH=n
 
-VERSIONFILE = $(INCLUDEDIR)/linux/version.h
-VERSION     = $(shell awk -F\" '/REL/ {print $$2}' $(VERSIONFILE))
-INSTALLDIR = /lib/modules/$(VERSION)/misc
 
 ifeq ($(DEBUG), y)
 	DEBFLAGS = -g -DDEBUG
@@ -72,7 +69,3 @@ endif
 rebuild:
 	make clean
 	make
-
-install:
-	install -d $(INSTALLDIR)
-	install -c eleduino_ts.ko $(INSTALLDIR)

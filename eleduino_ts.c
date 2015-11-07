@@ -115,36 +115,29 @@ struct usb_eleduino_ts {
 
 
 static void usb_eleduino_ts_irq(struct urb *urb){
-  
-  int status;
 
   struct usb_eleduino_ts *eleduino_ts = urb->context;
-  struct input_dev *input_dev = eleduino_ts->input_dev;
+  struct input_dev *dev = eleduino_ts->input_dev;
   u8 *data = eleduino_ts->data;
-  u16 x1, y1;
-  u8 touchpoint_num = data[0x02] & 0x07;
+  int x, y, touchpoints, status;
 
-  KMSG_DEBUG("touchpoints num: %i", touchpoint_num);
+  touchpoints = data[1];
+  
+  x = ((unsigned int)(data[2] & 0xFF) << 8) | ((unsigned int)data[3]);
+  y = ((unsigned int)(data[4] & 0xFF) << 8) | ((unsigned int)data[5]);
 
-
-
-  /*
-   * probably we only need to activate task queue shedule here and submit urb 
-   * recive. but for now, I think, we can make all routine here.
-   */
-
-  if (touchpoint_num > 0) {
-    x1 = ((u16)data[0x03] & 0x0F) << 8 | data[0x04];
-    y1 = ((u16)data[0x05] & 0x0F) << 8 | data[0x06];
-
-    input_report_abs(input_dev, ABS_X, x1);
-    input_report_abs(input_dev, ABS_Y, y1);
-    input_report_abs(input_dev, ABS_PRESSURE, 200);
-    input_report_key(input_dev, BTN_TOUCH, 1);
-    input_sync(input_dev);
-  } else {
-    KMSG_ERROR("incorrect number of touchpoints: %i", touchpoint_num);
+  if (x != 0){
+    input_report_abs(dev, ABS_X, x);
+    input_report_abs(dev, ABS_Y, y);
+    input_report_abs(dev, ABS_PRESSURE, 200);
   }
+
+  if (touchpoints > 0)
+    input_report_abs(dev, BTN_TOUCH, 1);
+  else
+    input_report_abs(dev, BTN_TOUCH, 0);
+
+  input_sync(dev);
 
   status = usb_submit_urb(urb, GFP_ATOMIC);
 
@@ -173,11 +166,15 @@ static void usb_eleduino_ts_close(struct input_dev *dev){
 }
 
 static void inline usb_eleduino_ts_configure_input_dev(struct input_dev *input_dev) {
-  input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_ABS);
-  input_dev->keybit[BIT_WORD(BTN_TOUCH)] = BIT_MASK(BTN_TOUCH);
+  set_bit(ABS_PRESSURE, input_dev->absbit);
+  set_bit(BTN_TOUCH, input_dev->keybit);
+
   input_set_abs_params(input_dev, ABS_X, TOUCHSCREEN_MIN_X, TOUCHSCREEN_MAX_X, 0, 0);
   input_set_abs_params(input_dev, ABS_Y, TOUCHSCREEN_MIN_Y, TOUCHSCREEN_MAX_Y, 0, 0);
-  input_set_abs_params(input_dev, ABS_PRESSURE, TOUCHSCREEN_MIN_PRESSURE, TOUCHSCREEN_MAX_PRESSURE, 0, 0);
+  input_set_abs_params(input_dev, ABS_PRESSURE, 0, 200, 0, 0);
+
+  set_bit(EV_ABS, input_dev->evbit);
+  set_bit(EV_KEY, input_dev->evbit);
 }
 
 static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_device_id *id){
@@ -248,19 +245,21 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
   usb_to_input_id(dev, &input_dev->id);
   input_dev->dev.parent = &intf->dev;
 
-  
-
   input_set_drvdata(input_dev, eleduino_ts);
 
   input_dev->open = usb_eleduino_ts_open;
   input_dev->close = usb_eleduino_ts_close;
+
+
+  usb_eleduino_ts_configure_input_dev(input_dev);
+
 
   if (!input_dev->absinfo)
     input_dev->absinfo = kcalloc(ABS_CNT, sizeof(struct input_absinfo), GFP_KERNEL);
   if (!input_dev->absinfo)
     KMSG_WARN("%s(): kcalloc() failed?\n", __FUNCTION__);
 
-  usb_eleduino_ts_configure_input_dev(input_dev);
+  
 
   usb_fill_int_urb(eleduino_ts->irq, dev, pipe, eleduino_ts->data, maxp > 8 ? 8 : maxp, usb_eleduino_ts_irq, eleduino_ts, endpoint->bInterval);
 
