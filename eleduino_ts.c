@@ -123,19 +123,26 @@ static void usb_eleduino_ts_irq(struct urb *urb){
 
   touchpoints = data[1];
   
+  KMSG_DEBUG("touchpoints %i:", touchpoints);
+
   x = ((unsigned int)(data[2] & 0xFF) << 8) | ((unsigned int)data[3]);
   y = ((unsigned int)(data[4] & 0xFF) << 8) | ((unsigned int)data[5]);
 
   if (x != 0){
+    KMSG_DEBUG("Coordinates: x:%i y:%i");
     input_report_abs(dev, ABS_X, x);
     input_report_abs(dev, ABS_Y, y);
     input_report_abs(dev, ABS_PRESSURE, 200);
   }
 
-  if (touchpoints > 0)
+  if (touchpoints > 0){
+    KMSG_DEBUG("Touched");
     input_report_abs(dev, BTN_TOUCH, 1);
-  else
+  }
+  else{
+    KMSG_DEBUG("UnTouched");
     input_report_abs(dev, BTN_TOUCH, 0);
+  }
 
   input_sync(dev);
 
