@@ -57,13 +57,15 @@ MODULE_LICENSE(DRIVER_LICENSE);
 
 
 
-#ifndef USE_MULTITOUCH
- #define USE_MULTITOUCH 1
- #define URB_PACKET_SIZE 0x20
-#else
- #define USE_MULTITOUCH 0
- #define URB_PACKET_SIZE 0x6
-#endif
+#define URB_PACKET_SIZE 0x20
+
+// #ifndef USE_MULTITOUCH
+//  #define USE_MULTITOUCH 1
+//  #define URB_PACKET_SIZE 0x20
+// #else
+//  #define USE_MULTITOUCH 0
+//  #define URB_PACKET_SIZE 0x6
+// #endif
 
 #define TOUCHSCREEN_MIN_X 0
 #define TOUCHSCREEN_MIN_Y 0
@@ -121,15 +123,22 @@ static void usb_eleduino_ts_irq(struct urb *urb){
   u8 *data = eleduino_ts->data;
   int x, y, touchpoints, status;
 
-  touchpoints = data[1];
+  touchpoints = data[2];
   
   KMSG_DEBUG("touchpoints %i:", touchpoints);
 
-  x = ((unsigned int)(data[2] & 0xFF) << 8) | ((unsigned int)data[3]);
-  y = ((unsigned int)(data[4] & 0xFF) << 8) | ((unsigned int)data[5]);
+  KMSG_DEBUG("print data: %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x",
+    data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
+    data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16], data[17],
+    data[18], data[19], data[20], data[21], data[22], data[23], data[24], data[25], data[26],
+    data[27], data[28], data[29], data[30], data[31]);
+
+
+  x = ((unsigned int)(data[3] & 0xFF) << 8) | ((unsigned int)data[4]);
+  y = ((unsigned int)(data[5] & 0xFF) << 8) | ((unsigned int)data[6]);
 
   if (x != 0){
-    KMSG_DEBUG("Coordinates: x:%i y:%i");
+    KMSG_DEBUG("Coordinates: x:%i y:%i", x, y);
     input_report_abs(dev, ABS_X, x);
     input_report_abs(dev, ABS_Y, y);
     input_report_abs(dev, ABS_PRESSURE, 200);
@@ -145,6 +154,8 @@ static void usb_eleduino_ts_irq(struct urb *urb){
   }
 
   input_sync(dev);
+
+  memset(data, 0, URB_PACKET_SIZE);
 
   status = usb_submit_urb(urb, GFP_ATOMIC);
 
@@ -223,6 +234,7 @@ static int usb_eleduino_ts_probe(struct usb_interface *intf, const struct usb_de
     err = -ENOMEM;
     goto fail1;
   }
+  memset(eleduino_ts->data, 0, URB_PACKET_SIZE);
 
   eleduino_ts->irq = usb_alloc_urb(0, GFP_KERNEL);
   if (!eleduino_ts->irq) {
