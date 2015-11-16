@@ -15,57 +15,22 @@
  # Should you need to contact me, the author, you can do so either by
  # e-mail - mail your message to <arhichief@gmail.com>.
  
+CC=gcc
+CFLAGS=-c -Wall
+LDFLAGS=
+SOURCES=uinput_research.c
+OBJECTS=$(SOURCES:.c=.o)
+EXECUTABLE=uinput_research
 
-# Put "y" to activate debug mode. Put "n" overvise.
-DEBUG=y
+all: $(SOURCES) $(EXECUTABLE)
 
-# Multitouch support for driver
-# 	Use "USE_MULTITOUCH=n" to disable multitouch support
-#	Use "USE_MULTITOUCH=y" to enable multitouch support. Probavly will not work 
-#		if no HID_MULTITOUCH defined in kernel build stage.
-USE_MULTITOUCH=n
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
 
-
-ifeq ($(DEBUG), y)
-	DEBFLAGS = -g -DDEBUG
-else
-	DEBFLAGS = -O2
-endif
-
-ifeq ($(USE_MULTITOUCH), y)
-	EXTRA_CFLAGS = -DUSE_MULTITOUCH
-endif
-
-EXTRA_CFLAGS += $(DEBFLAGS)
-
-ifneq ($(KERNELRELEASE),)
-# call from kernel build system
-
-obj-m	:= eleduino_ts.o
-
-else
-
-KERNELDIR ?= /lib/modules/$(shell uname -r)/build
-PWD       := $(shell pwd)
-
-modules:
-	$(MAKE) -C $(KERNELDIR) M=$(PWD) modules
-
-endif
-
-
+.c.o:
+	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -rf *.o *~ core .depend .*.cmd *.ko *.mod.c .tmp_versions *.symvers *.order
+	rm -f $(EXECUTABLE) $(OBJECTS)
 
-depend .depend dep:
-	$(CC) $(EXTRA_CFLAGS) -M *.c > .depend
-
-
-ifeq (.depend,$(wildcard .depend))
-include .depend
-endif
-
-rebuild:
-	make clean
-	make
+rebuild: clean all
