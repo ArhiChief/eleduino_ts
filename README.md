@@ -47,4 +47,4 @@ It will works on kernels with version 2.6.32+.
 2. If you have **modprobed**, put **10-eleduino_ts.rules** inside **/etc/modprobe.d/**. Otherwise, add **modprobe eleduino_ts.ko** at the end of your init script.
 3. For now, I have a problems with **usb-hid** kernel module (usb-hid doesn't give alligment of touchscreen for my driver). I'm also working on fixing this bug. Put **10-eleduino_ts.rules** into **/etc/udev/rules.d/** dirrectory, and after full system initialization execute:
 
-	# echo -n '0eef 0005' > /sys/bus/usb/drivers/eleduino_ts/new_id
+	`# echo -n '0eef 0005' > /sys/bus/usb/drivers/eleduino_ts/new_id`
