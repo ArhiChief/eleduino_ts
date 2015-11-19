@@ -32,11 +32,11 @@ Compile driver for your device. If you build it on your PC, you have to create t
 
 Them just run  
 
-               `$ CC=arm-unknown-linux-gnueabi-gcc make`
+               $ CC=arm-unknown-linux-gnueabi-gcc make
 			   
 If you will build driver on your device, be sure what your system contains installed linux-headers. And just run 
 
-               `$ make`
+               $ make
 
 ##Installation
 For now, driver is in beta stage, and will only emit mouse left button click on position of your finger. I'll make another futures in the future.
@@ -44,7 +44,7 @@ For now, driver is in beta stage, and will only emit mouse left button click on 
 It will works on kernels with version 2.6.32+.
 
 1. Put **eleduino_ts.ko** in **/usr/lib/modules/<kernel_version>/** dirrectory. 
-2. If you have **modprobed*, put **10-eleduino_ts.rules** inside **/etc/modprobe.d/**. Otherwise, add **modprobe eleduino_ts.ko** at the end of your init script.
+2. If you have **modprobed**, put **10-eleduino_ts.rules** inside **/etc/modprobe.d/**. Otherwise, add **modprobe eleduino_ts.ko** at the end of your init script.
 3. For now, I have a problems with **usb-hid** kernel module (usb-hid doesn't give alligment of touchscreen for my driver). I'm also working on fixing this bug. Put **10-eleduino_ts.rules** into **/etc/udev/rules.d/** dirrectory, and after full system initialization execute:
 
-	`# echo -n '0eef 0005' > /sys/bus/usb/drivers/eleduino_ts/new_id`
+	# echo -n '0eef 0005' > /sys/bus/usb/drivers/eleduino_ts/new_id
