@@ -28,10 +28,12 @@ TODO: Add some notes about it
 
 Where are two ways to build this kernel module. One way is to build sources on target system (e.g. Raspberry PI). Other way is to build all at host (Your PC with Linux on board) system.
 
-Compile driver for your device. If you build it on your PC, you have to create toolchain for your device. I advise you to use crosstool-ng. You can read about it here http://www.bootc.net/archives/2012/05/26/how-to-build-a-cross-compiler-for-your-raspberry-pi/. Them just run  
-               $ CC=arm-unknown-linux-gnueabi-gcc make 
+Compile driver for your device. If you build it on your PC, you have to create toolchain for your device. I advise you to use crosstool-ng. You can read about it [here]() http://www.bootc.net/archives/2012/05/26/how-to-build-a-cross-compiler-for-your-raspberry-pi/). 
+
+Them just run  
+               '$ CC=arm-unknown-linux-gnueabi-gcc make'
 If you will build driver on your device, be sure what your system contains installed linux-headers. And just run 
-               $ make
+               '$ make'
 
 ##Installation
 For now, driver is in beta stage, and will only emit mouse left button click on position of your finger. I'll make another futures in future.
