@@ -64,10 +64,8 @@
  */
 #ifndef ELEDUINO_TS_USE_MULTITOUCH
 	#define URB_PACKET_SIZE 0x03	
-	#define URB_PACKET_OFFSET 0x00
 #else
-	#define URB_PACKET_SIZE 0x03	
-	#define URB_PACKET_OFFSET 0x00
+	#define URB_PACKET_SIZE 0x19	
 #endif
 
 

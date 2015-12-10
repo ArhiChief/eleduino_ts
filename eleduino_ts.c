@@ -46,22 +46,6 @@ MODULE_LICENSE(DRIVER_LICENSE);
 #define USB_VENDOR_ID   0x0eef
 #define USB_DEVICE_ID   0x0005
 
-
-
-
-
-
-
-// #ifndef USE_MULTITOUCH
-//  #define USE_MULTITOUCH 1
-//  #define URB_PACKET_SIZE 0x20
-// #else
-//  #define USE_MULTITOUCH 0
-//  #define URB_PACKET_SIZE 0x6
-// #endif
-
-
-
 static void usb_eleduino_ts_irq(struct urb *urb){
 
   struct usb_eleduino_ts *eleduino_ts = urb->context;
