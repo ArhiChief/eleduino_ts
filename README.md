@@ -27,40 +27,40 @@ Touchscreen is contolled by FT5206 processor what handle user's touches and prov
 The structure of the packet that we can recive on host is something like what:
 
 ```
-arhichief@robotron $ sudo xxd -c 25 /dev/hidraw4
-0000000: aa00 0000 0000 bb00 0000 0000 0000 0000 0000 0000 0000 0000 00  .........................
-0000019: aa01 00c5 0134 bb01 0000 0000 0000 0000 0000 0000 0000 0000 cc  .....4...................
+[arhichief@robotron ~]$ sudo cat /dev/hidraw4 | hexdump -C
+00000000	aa 01 03 17 00 b5 bb 01 09 39 00 be 01 65 fd 97	|.........9...e..|
+00000010	0f 3d fb 35 0b 31 00 1e cc aa 00 00 00 00 00 bb	|.=.5.1..........|
 ```
 
 There is description of this output that can be found at the end of [this](http://www.waveshare.com/w/upload/7/73/7inch-HDMI-LCD-B-UserManual.pdf) document:
 
 |Byte (Hex address)|Description|
 |:---------------:|:---------------:|
-|**0x00**| The frame header is 0xAA.
-|**0x01**| Touch flag (1: valid touch data. 0: The flag of touch finished)
-|**0x02**| The x-coordinate high byte of the 1st touch point.
-|**0x03**| The x-coordinate low byte of the 1st touch point.
-|**0x04**| The y-coordinate high byte of the 1st touch point.
-|**0x05**| The y-coordinate low byte of the 1st touch point.
-|**0x06**| The 1st touch finished flag is 0xBB. Raspberry Pi only uses the first 7 Bytes.|
-|**0x07**| The quantity of touch coordinates (1~5)
-|**0x08**| The x-coordinate high byte of the 2nd touch point.|
-|**0x09**| The x-coordinate low byte of the 2nd touch point.|
-|**0x0A**| The y-coordinate high byte of the 2nd touch point.|
-|**0x0B**| The y-coordinate low byte of the 2nd touch point.|
-|**0x0C**| The x-coordinate high byte of the 3rd touch point.|
-|**0x0D**| The x-coordinate low byte of the 3rd touch point.|
-|**0x0E**| The y-coordinate high byte of the 3rd touch point.|
-|**0x0F**| The y-coordinate low byte of the 3rd touch point.|
-|**0x10**| The x-coordinate high byte of the 4th touch point.|
-|**0x12**| The x-coordinate low byte of the 4th touch point.|
-|**0x13**| The y-coordinate high byte of the 4th touch point.|
-|**0x14**| The y-coordinate low byte of the 4th touch point.|
-|**0x15**| The x-coordinate high byte of the 5th touch point.|
-|**0x16**| The x-coordinate low byte of the 5th touch point.|
-|**0x17**| The y-coordinate high byte of the 5th touch point.|
-|**0x18**| The y-coordinate low byte of the 5th touch point.|
-|**0x19**| The Frame end is 0xCC.|
+|**0x00**| The frame header is 0xAA|
+|**0x01**| Touch flag (1: valid touch data. 0: The flag of touch finished)|
+|**0x02**| The x-coordinate high byte of the 1st touch point|
+|**0x03**| The x-coordinate low byte of the 1st touch point|
+|**0x04**| The y-coordinate high byte of the 1st touch point|
+|**0x05**| The y-coordinate low byte of the 1st touch point|
+|**0x06**| The 1st touch finished flag is 0xBB|
+|**0x07**| The quantity of touch coordinates (1~5)|
+|**0x08**| The x-coordinate high byte of the 2nd touch point|
+|**0x09**| The x-coordinate low byte of the 2nd touch point|
+|**0x0A**| The y-coordinate high byte of the 2nd touch point|
+|**0x0B**| The y-coordinate low byte of the 2nd touch point|
+|**0x0C**| The x-coordinate high byte of the 3rd touch point|
+|**0x0D**| The x-coordinate low byte of the 3rd touch point|
+|**0x0E**| The y-coordinate high byte of the 3rd touch point|
+|**0x0F**| The y-coordinate low byte of the 3rd touch point|
+|**0x10**| The x-coordinate high byte of the 4th touch point|
+|**0x12**| The x-coordinate low byte of the 4th touch point|
+|**0x13**| The y-coordinate high byte of the 4th touch point|
+|**0x14**| The y-coordinate low byte of the 4th touch point|
+|**0x15**| The x-coordinate high byte of the 5th touch point|
+|**0x16**| The x-coordinate low byte of the 5th touch point|
+|**0x17**| The y-coordinate high byte of the 5th touch point|
+|**0x18**| The y-coordinate low byte of the 5th touch point|
+|**0x19**| The Frame end is 0xCC|
 
 ## Building
 
