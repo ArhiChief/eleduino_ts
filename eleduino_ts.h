@@ -60,7 +60,7 @@
 
 /* 
  * Information about touch point stores in firts 3 bytes of message in 
- * singletouch configuration 
+ * singletouch configuration. 
  */
 #ifndef ELEDUINO_TS_USE_MULTITOUCH
 	#define URB_PACKET_SIZE 0x03	
