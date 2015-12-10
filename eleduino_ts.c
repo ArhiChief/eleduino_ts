@@ -28,8 +28,13 @@
 #include <linux/init.h>
 #include <linux/usb/input.h>
 #include <linux/usb.h>
+#include <linux/time.h>
 
-#define DRIVER_VERSION "v0.0.1"
+#include "eleduino_ts.h"
+#include "misc.h"
+
+
+#define DRIVER_VERSION "v0.1.0"
 #define DRIVER_DESC    "Eleduino tft 7inch display. USB touchscreen driver."
 #define DRIVER_LICENSE "GPL"
 #define DRIVER_AUTHOR  "arhichief"
@@ -41,23 +46,11 @@ MODULE_LICENSE(DRIVER_LICENSE);
 #define USB_VENDOR_ID   0x0eef
 #define USB_DEVICE_ID   0x0005
 
-/* Put message into kernel journal */
-#define KMSG( alert_lvl, fmt, args... ) printk(alert_lvl KBUILD_MODNAME ": " fmt, ##args);
-
-#define KMSG_INFO(fmt, args...) KMSG(KERN_INFO, fmt, ##args)
-#define KMSG_WARN(fmt, args...) KMSG(KERN_WARNING, fmt, ##args)
-#define KMSG_ALERT(fmt, args...) KMSG(KERN_ALERT, fmt, ##args)
-#define KMSG_ERROR(fmt, args...) KMSG(KERN_ERR, fmt, ##args)
-
-#ifndef PDEBUG
- #define KMSG_DEBUG(fmt, args...) KMSG(KERN_DEBUG, "%s::%i " fmt, __FUNCTION__, __LINE__,  ##args)
-#else
- #define KMSG_DEBUG(fmt, args...)
-#endif /* PDEBUG */
 
 
 
-#define URB_PACKET_SIZE 0x20
+
+
 
 // #ifndef USE_MULTITOUCH
 //  #define USE_MULTITOUCH 1
@@ -67,53 +60,6 @@ MODULE_LICENSE(DRIVER_LICENSE);
 //  #define URB_PACKET_SIZE 0x6
 // #endif
 
-#define TOUCHSCREEN_MIN_X 0
-#define TOUCHSCREEN_MIN_Y 0
-#define TOUCHSCREEN_MAX_X 800
-#define TOUCHSCREEN_MAX_Y 480
-#define TOUCHSCREEN_MIN_PRESSURE 50
-#define TOUCHSCREEN_MAX_PRESSURE 200
-
-/*
- *  The packet, that device sends to host has next structure. For more details see FT5206.pdf
- *
- *    ---------------------------------------------------------------------------------------------------
- *    | Address | Register Name   | Bit7 | Bit6 | Bit5 | Bit4 | Bit3 | Bit2 | Bit1 | Bit0 | Host Access |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 00h | DEVICE_MODE     |      | Device_mode[2:0]   |                           | R / W       |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 01h | GEST_ID         | Gesture ID[7:0]                                       | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 02h | TD_STATUS       |                           | Number of touchpoints[3:0]| R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 03h | TOUCH1_XH       |1 Event Flag |             | 1st Touch Position[11:8]  | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 04h | TOUCH1_XL       | 1st Touch X Position [7:0]                            | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 05h | TOUCH1_YH       | 1st Touch ID[0:3]         | 1st Touch Position[11:8]  | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 06h | TOUCH1_YL       | 1st Touch Y Position [7:0]                            | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 07h |                 |                                                       | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    | Op, 08h |                 |                                                       | R           |
- *    ---------------------------------------------------------------------------------------------------
- *    |           4 other touchpoint has same structure and it's placed from 09h to 20h.               |
- *    ---------------------------------------------------------------------------------------------------
- *    
- */
-
-/* The structure of the device */
-struct usb_eleduino_ts {
-  char name[128];
-  char phys[64];
-  struct usb_device *usb_dev;
-  struct input_dev *input_dev;
-  struct urb *irq;
-  
-  u8 *data;
-  dma_addr_t data_dma;
-};
 
 
 static void usb_eleduino_ts_irq(struct urb *urb){
