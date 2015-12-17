@@ -25,6 +25,14 @@
 #ifndef MISC_H
 #define MISC_H
 
+#define COORD(data, pos) (u16)(data[pos] && 0xFF) | ((u16)data[pos + 1])
+#define COORDS(data, pos) COORD(data, pos), COORD(data, pos + 2)
+
+#define EXTRACT_COORDS(x, y, data, from) \
+ x = COORD(data, from); \
+ y = COORD(data, from + 2)
+
+
 /* Put message into kernel journal */
 #define KMSG( alert_lvl, fmt, args... ) printk(alert_lvl KBUILD_MODNAME ": " fmt, ##args);
 
@@ -35,14 +43,27 @@
 
 #ifndef PDEBUG
  #define KMSG_DEBUG(fmt, args...) KMSG(KERN_DEBUG, "%s::%i " fmt, __FUNCTION__, __LINE__,  ##args)
+
+ #ifdef ELEDUINO_TS_USE_MULTITOUCH
+ 	/* Print touch information */
+ 	#define PRINT_COORDS(data) printk("touched=%d; points=%d; p1[%d;%d]; p2[%d;" \
+        "%d]; p3[%d;%d]; p4[%d;%d]; p5[%d;%d];\n", data[0x01], data[0x07], \
+        COORDS(data, 0x02), COORDS(data, 0x08), COORDS(data, 0x0C), \
+        COORDS(data, 0x10), COORDS(data, 0x15))
+ #else
+ 	#define PRINT_COORDS(data) printk("touched=%d; p[%d;%d]\n", data[0x01], COORDS(data, 0x02))
+ #endif
+ 	
 #else
  #define KMSG_DEBUG(fmt, args...)
+ #define PRINT_COORDS(data)
 #endif /* PDEBUG */
 
 
-#define EXTRACT_COORDS(x, y, data, from) \
- x = (unsigned int)(data[from] && 0xFF) | ((unsigned int)data[from + 1]); \
- y = (unsigned int)(data[from + 2] && 0xFF) | ((unsigned int)data[from + 3])
+
+
+
+
 
 
 #endif	/* MISC_H */

@@ -55,12 +55,15 @@ static void usb_eleduino_ts_irq(struct urb *urb){
   usb_eleduino_ts_t *eleduino_ts = urb->context;
   eleduino_ts_event_t* event;
   u8* data = eleduino_ts->data;
+  int status;
+
+  PRINT_COORDS(data);
 
   event = kzalloc(sizeof(eleduino_ts_event_t), GFP_ATOMIC);
   if (event){
     event->touched = data[0x01];
     do_gettimeofday(&event->time);
-    EXTRACT_COORDS(event->x1, event->x2, data, 0x02);
+    EXTRACT_COORDS(event->x1, event->y1, data, 0x02);
 #ifdef ELEDUINO_TS_USE_MULTITOUCH
     event->points = data[0x07];
     EXTRACT_COORDS(event->x2, event->y2, data, 0x08);
@@ -68,9 +71,12 @@ static void usb_eleduino_ts_irq(struct urb *urb){
     EXTRACT_COORDS(event->x4, event->y4, data, 0x10);
     EXTRACT_COORDS(event->x5, event->y5, data, 0x15);
 #endif
+
+    list_add(&event->list, &eleduino_ts_events->list);
   }
 
-  if (usb_submit_urb(urb, GFP_ATOMIC) && &eleduino_ts->usb_dev->dev)
+  status = usb_submit_urb(urb, GFP_ATOMIC);
+  if (status && &eleduino_ts->usb_dev->dev)
     KMSG_ERROR("can't resubmit intr, %s-%s/input0, status %d\n",
       eleduino_ts->usb_dev->bus->bus_name,
       eleduino_ts->usb_dev->devpath, status);
