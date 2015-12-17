@@ -35,6 +35,7 @@
 
 #include "eleduino_ts.h"
 #include "misc.h"
+#include "gesture_processor.h"
 
 
 #define DRIVER_VERSION "v0.1.0"
@@ -49,9 +50,7 @@ MODULE_LICENSE(DRIVER_LICENSE);
 #define USB_VENDOR_ID   0x0eef
 #define USB_DEVICE_ID   0x0005
 
-static eleduino_ts_event_t* eleduino_ts_events = NULL;
-
-/* Prototype for touc processor */
+/* Prototype for touch processor tasklet */
 void usb_eleduino_ts_do_tasklet(unsigned long);
 DECLARE_TASKLET(eleduino_ts_tasklet, usb_eleduino_ts_do_tasklet, 0);
 
@@ -76,12 +75,15 @@ static void usb_eleduino_ts_irq(struct urb *urb){
     EXTRACT_COORDS(event->x4, event->y4, data, 0x10);
     EXTRACT_COORDS(event->x5, event->y5, data, 0x15);
 #endif
-
-    list_add(&event->list, &eleduino_ts_events->list);
+    // add event at the end of queue
+    list_add_tail(&event->list, &eleduino_ts_events->list);
   }
 
-
-  tasklet_schedule(&eleduino_ts_tasklet);
+  /* Schedule tasklet if touches ends */
+  if (!event->touched) {
+    eleduino_ts_tasklet.data = (unsigned long)&eleduino_ts;
+    tasklet_schedule(&eleduino_ts_tasklet);
+  }
 
   status = usb_submit_urb(urb, GFP_ATOMIC);
   if (status && &eleduino_ts->usb_dev->dev)
@@ -110,14 +112,14 @@ static void usb_eleduino_ts_close(struct input_dev *dev){
 
 static void inline usb_eleduino_ts_configure_input_dev(struct input_dev *input_dev) {
 #ifndef ELEDUINO_TS_USE_MULTITOUCH
-  /* Use singletouch configuration. Configure device for mouse emulation */
+  /* Mouse emulation configuration */
   input_dev->evbit[0] = BIT_MASK(EV_KEY) | BIT_MASK(EV_REL);
   input_dev->keybit[BIT_WORD(BTN_MOUSE)] = BIT_MASK(BTN_LEFT) | BIT_MASK(BTN_RIGHT) | BIT_MASK(BTN_MIDDLE);
   input_dev->relbit[0] = BIT_MASK(REL_X) | BIT_MASK(REL_Y);
   input_dev->keybit[BIT_WORD(BTN_MOUSE)] |= BIT_MASK(BTN_SIDE) | BIT_MASK(BTN_EXTRA);
   input_dev->relbit[0] |= BIT_MASK(REL_WHEEL);
 #else
-  /* Use multitouch configuration based on Linux MT protocol */
+  /* Multitouch configuration based on Linux MT protocol */
 #endif
 }
 
@@ -216,7 +218,8 @@ static void usb_eleduino_ts_disconnect(struct usb_interface *intf){
 
   usb_set_intfdata(intf, NULL);
 
-  tasklet_disable(&eleduino_ts_tasklet);
+  /* Make sure that no tasklets avaliable */
+  tasklet_disable(&eleduino_ts_tasklet); 
 
   if (eleduino_ts){
     kfree(dev->absinfo);
@@ -260,12 +263,20 @@ static int __init usb_eleduino_ts_init(void){
 }
 
 static void __exit usb_eleduino_ts_exit(void){
+  tasklet_kill(&eleduino_ts_tasklet);
+  kfree(eleduino_ts_events);
   usb_deregister(&usb_eleduino_ts_driver);
 }
 
 
-void usb_eleduino_ts_do_tasklet(unsigned long unused){
+void usb_eleduino_ts_do_tasklet(unsigned long eleduino_ts_addr){
+  usb_eleduino_ts_t *eleduino_ts = (usb_eleduino_ts_t *)eleduino_ts_addr;
+
   KMSG_DEBUG("start tasklet");
+
+  if (eleduino_ts_events && list_empty(&eleduino_ts_events->list))
+    process_gesture(eleduino_ts_events, eleduino_ts->input_dev);
+
 }
 
 module_init(usb_eleduino_ts_init);

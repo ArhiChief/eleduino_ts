@@ -1,7 +1,7 @@
 /*
  *  Copyright (c) 2015 ArhiChief
  *
- *  Eleduino 7 inch tft display USB touchscreen driver
+ *  Eleduino 7 inch tft display USB touchscreen driver. Miscelenious macroses.
 
  *
  * This program is free software; you can redistribute it and/or modify
@@ -25,6 +25,7 @@
 #ifndef MISC_H
 #define MISC_H
 
+/* Some mocro for extracting coordinates from URB */
 #define COORD(data, pos) (u16)(data[pos] && 0xFF) | ((u16)data[pos + 1])
 #define COORDS(data, pos) COORD(data, pos), COORD(data, pos + 2)
 
@@ -34,7 +35,7 @@
 
 
 /* Put message into kernel journal */
-#define KMSG( alert_lvl, fmt, args... ) printk(alert_lvl KBUILD_MODNAME ": " fmt, ##args);
+#define KMSG( alert_lvl, fmt, args... ) printk(alert_lvl KBUILD_MODNAME ": " fmt "\n", ##args);
 
 #define KMSG_INFO(fmt, args...) KMSG(KERN_INFO, fmt, ##args)
 #define KMSG_WARN(fmt, args...) KMSG(KERN_WARNING, fmt, ##args)
@@ -46,24 +47,17 @@
 
  #ifdef ELEDUINO_TS_USE_MULTITOUCH
  	/* Print touch information */
- 	#define PRINT_COORDS(data) printk("touched=%d; points=%d; p1[%d;%d]; p2[%d;" \
-        "%d]; p3[%d;%d]; p4[%d;%d]; p5[%d;%d];\n", data[0x01], data[0x07], \
+ 	#define PRINT_COORDS(data) KMSG_DEBUG("touched=%d; points=%d: p1[%d;%d]; p2[%d;" \
+        "%d]; p3[%d;%d]; p4[%d;%d]; p5[%d;%d];", data[0x01], data[0x07], \
         COORDS(data, 0x02), COORDS(data, 0x08), COORDS(data, 0x0C), \
         COORDS(data, 0x10), COORDS(data, 0x15))
  #else
- 	#define PRINT_COORDS(data) printk("touched=%d; p[%d;%d]\n", data[0x01], COORDS(data, 0x02))
+ 	#define PRINT_COORDS(data) KMSG_DEBUG("touched=%d; p[%d;%d]", data[0x01], COORDS(data, 0x02))
  #endif
  	
 #else
  #define KMSG_DEBUG(fmt, args...)
  #define PRINT_COORDS(data)
 #endif /* PDEBUG */
-
-
-
-
-
-
-
 
 #endif	/* MISC_H */

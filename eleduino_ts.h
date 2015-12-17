@@ -1,7 +1,7 @@
 /*
  *  Copyright (c) 2015 ArhiChief
  *
- *  Eleduino 7 inch tft display USB touchscreen driver
+ *  Eleduino 7 inch tft display USB touchscreen driver. Driver configuration file
 
  *
  * This program is free software; you can redistribute it and/or modify
@@ -35,31 +35,17 @@
 /* ===== Driver onfiguration ===== */
 
 /* Display resolution parametrs */
-#define TOUCHSCREEN_MIN_X 0 			
-#define TOUCHSCREEN_MIN_Y 0
-#define TOUCHSCREEN_MAX_X 800
-#define TOUCHSCREEN_MAX_Y 480
+#define TOUCHSCREEN_MIN_X 					0 			
+#define TOUCHSCREEN_MIN_Y 					0
+#define TOUCHSCREEN_MAX_X 					800
+#define TOUCHSCREEN_MAX_Y 					480
 
 /* Touchscreen pressure parametrs */
-#define TOUCHSCREEN_MIN_PRESSURE 50		
-#define TOUCHSCREEN_MAX_PRESSURE 200
+#define TOUCHSCREEN_MIN_PRESSURE 			50		
+#define TOUCHSCREEN_MAX_PRESSURE 			200
 
-
-
-/* Gestures configuration 
- *
- *	LMB - left mouse button;
- *  RMB - right mouse button;
- *	MMB - midle mouse button (mouse wheel).
- *
- *  All delays are defined in milliseconds (ms).
- */
-
-/* Delay betwean touch events what will recognized as LMB click */
-#define LMB_DOUBLE_CLICK_DELAY				1000
-/* Delay betwean touch events what will recognized as RMB click */
-#define RMB_CLICK_DELAY						1500
-/* =============================== */
+ /* This value defines maximal value dispersion in coordinates of gesture points */
+#define COORDINATE_DISPERSION 				30
 
 
 /* 
@@ -73,24 +59,11 @@
 #endif
 
 
-/* Structure of the device */
-typedef struct {
-  char name[128];
-  char phys[64];
-  struct usb_device *usb_dev;
-  struct input_dev *input_dev;
-  struct urb *irq;
-  
-  u8 *data;
-
-  dma_addr_t data_dma;
-} usb_eleduino_ts_t;
-
 /* Structure of the touchevent */
 typedef struct
 {
 	struct list_head list;
-
+	
 	struct timeval time;	/* Time when event rises */
 
 	u16 x1;
@@ -109,5 +82,20 @@ typedef struct
 	u8 touched;
 	
 } eleduino_ts_event_t;
+
+/* Structure of the device */
+typedef struct {
+  char name[128];
+  char phys[64];
+  struct usb_device *usb_dev;
+  struct input_dev *input_dev;
+  struct urb *irq;
+  
+  eleduino_ts_event_t *gesture_descriptor;
+
+  u8 *data;
+
+  dma_addr_t data_dma;
+} usb_eleduino_ts_t;
 
 #endif	/* ELEDUINO_TS_H */
