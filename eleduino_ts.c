@@ -30,7 +30,7 @@
 #include <linux/usb.h>
 #include <linux/hid.h>
 #include <linux/time.h>
-
+#include <linux/interrupt.h>
 #include <linux/list.h>
 
 #include "eleduino_ts.h"
@@ -50,6 +50,11 @@ MODULE_LICENSE(DRIVER_LICENSE);
 #define USB_DEVICE_ID   0x0005
 
 static eleduino_ts_event_t* eleduino_ts_events = NULL;
+
+/* Prototype for touc processor */
+void usb_eleduino_ts_do_tasklet(unsigned long);
+DECLARE_TASKLET(eleduino_ts_tasklet, usb_eleduino_ts_do_tasklet, 0);
+
 
 static void usb_eleduino_ts_irq(struct urb *urb){
   usb_eleduino_ts_t *eleduino_ts = urb->context;
@@ -74,6 +79,9 @@ static void usb_eleduino_ts_irq(struct urb *urb){
 
     list_add(&event->list, &eleduino_ts_events->list);
   }
+
+
+  tasklet_schedule(&eleduino_ts_tasklet);
 
   status = usb_submit_urb(urb, GFP_ATOMIC);
   if (status && &eleduino_ts->usb_dev->dev)
@@ -207,6 +215,9 @@ static void usb_eleduino_ts_disconnect(struct usb_interface *intf){
   struct input_dev *dev = eleduino_ts->input_dev;
 
   usb_set_intfdata(intf, NULL);
+
+  tasklet_disable(&eleduino_ts_tasklet);
+
   if (eleduino_ts){
     kfree(dev->absinfo);
     usb_kill_urb(eleduino_ts->irq);
@@ -250,6 +261,11 @@ static int __init usb_eleduino_ts_init(void){
 
 static void __exit usb_eleduino_ts_exit(void){
   usb_deregister(&usb_eleduino_ts_driver);
+}
+
+
+void usb_eleduino_ts_do_tasklet(unsigned long unused){
+  KMSG_DEBUG("start tasklet");
 }
 
 module_init(usb_eleduino_ts_init);
