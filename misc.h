@@ -40,4 +40,9 @@
 #endif /* PDEBUG */
 
 
+#define EXTRACT_COORDS(x, y, data, from) \
+ x = (unsigned int)(data[from] && 0xFF) | ((unsigned int)data[from + 1]); \
+ y = (unsigned int)(data[from + 2] && 0xFF) | ((unsigned int)data[from + 3])
+
+
 #endif	/* MISC_H */

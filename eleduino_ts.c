@@ -29,6 +29,9 @@
 #include <linux/usb/input.h>
 #include <linux/usb.h>
 #include <linux/hid.h>
+#include <linux/time.h>
+
+#include <linux/list.h>
 
 #include "eleduino_ts.h"
 #include "misc.h"
@@ -46,15 +49,28 @@ MODULE_LICENSE(DRIVER_LICENSE);
 #define USB_VENDOR_ID   0x0eef
 #define USB_DEVICE_ID   0x0005
 
-static eleduino_ts_event_t* eleduino_ts_events;
+static eleduino_ts_event_t* eleduino_ts_events = NULL;
 
 static void usb_eleduino_ts_irq(struct urb *urb){
   usb_eleduino_ts_t *eleduino_ts = urb->context;
-  int status;
+  eleduino_ts_event_t* event;
+  u8* data = eleduino_ts->data;
 
-  status = usb_submit_urb(urb, GFP_ATOMIC);
+  event = kzalloc(sizeof(eleduino_ts_event_t), GFP_ATOMIC);
+  if (event){
+    event->touched = data[0x01];
+    do_gettimeofday(&event->time);
+    EXTRACT_COORDS(event->x1, event->x2, data, 0x02);
+#ifdef ELEDUINO_TS_USE_MULTITOUCH
+    event->points = data[0x07];
+    EXTRACT_COORDS(event->x2, event->y2, data, 0x08);
+    EXTRACT_COORDS(event->x3, event->y3, data, 0x0C);
+    EXTRACT_COORDS(event->x4, event->y4, data, 0x10);
+    EXTRACT_COORDS(event->x5, event->y5, data, 0x15);
+#endif
+  }
 
-  if (status && &eleduino_ts->usb_dev->dev)
+  if (usb_submit_urb(urb, GFP_ATOMIC) && &eleduino_ts->usb_dev->dev)
     KMSG_ERROR("can't resubmit intr, %s-%s/input0, status %d\n",
       eleduino_ts->usb_dev->bus->bus_name,
       eleduino_ts->usb_dev->devpath, status);
@@ -213,11 +229,16 @@ static struct usb_driver usb_eleduino_ts_driver = {
 static int __init usb_eleduino_ts_init(void){
   int result = usb_register(&usb_eleduino_ts_driver);
 
-  KMSG_DEBUG("inside init");
-
-  if (result == 0) {
+  if (result == 0)
     KMSG_INFO(DRIVER_VERSION "." DRIVER_DESC "\n");
-  }
+
+  eleduino_ts_events = kzalloc(sizeof(eleduino_ts_event_t), GFP_KERNEL);
+
+  INIT_LIST_HEAD(&eleduino_ts_events->list);
+
+  if (!eleduino_ts_events)
+    result = -ENOMEM;
+
   return result;
 }
 

@@ -29,6 +29,8 @@
 #include <linux/time.h>
 #include <linux/usb/input.h>
 #include <linux/usb.h>
+#include <linux/list.h>
+#include <linux/types.h>
 
 /* ===== Driver onfiguration ===== */
 
@@ -87,6 +89,10 @@ typedef struct {
 /* Structure of the touchevent */
 typedef struct
 {
+	struct list_head list;
+
+	struct timeval time;	/* Time when event rises */
+
 	u16 x1;
 	u16 y1;
 #ifdef ELEDUINO_TS_USE_MULTITOUCH
@@ -101,7 +107,7 @@ typedef struct
 	u8 points;
 #endif
 	u8 touched;
-	struct timeval time;	/* Time when event rises */
+	
 } eleduino_ts_event_t;
 
 #endif	/* ELEDUINO_TS_H */
