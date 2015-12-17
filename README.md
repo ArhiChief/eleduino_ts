@@ -92,8 +92,9 @@ It will works on kernels with version 2.6.32+.
 ```
 
 # Tasks
-- [x] Basic logic. Support left mouse button click at the position of finger touch (v 0.0.1)
-- [ ] Multitouch support (v 0.1.0)
-- [ ] Gesture identification (v 0.3.0)
-- [ ] Custom gestures (v 0.5.0)
-- [ ] Simple building and installation scripts (v 1.0.0)
+- [x] Basic logic. Support left mouse button click at the position of finger touch (v 0.0.1);
+- [v] Support for mouse emulation (v 0.0.5);
+- [ ] Multitouch support (v 0.1.0);
+- [ ] Gesture identification (v 0.3.0);
+- [ ] Custom gestures (v 0.5.0);
+- [ ] Simple building and installation scripts (v 1.0.0);
