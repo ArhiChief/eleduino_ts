@@ -42,6 +42,8 @@
 #define TOUCHSCREEN_MIN_PRESSURE 50		
 #define TOUCHSCREEN_MAX_PRESSURE 200
 
+
+
 /* Gestures configuration 
  *
  *	LMB - left mouse button;
@@ -63,14 +65,14 @@
  * singletouch configuration. 
  */
 #ifndef ELEDUINO_TS_USE_MULTITOUCH
-	#define URB_PACKET_SIZE 0x03	
+	#define URB_PACKET_SIZE 0x06	
 #else
-	#define URB_PACKET_SIZE 0x19	
+	#define URB_PACKET_SIZE 0x20	
 #endif
 
 
 /* Structure of the device */
-struct usb_eleduino_ts {
+typedef struct {
   char name[128];
   char phys[64];
   struct usb_device *usb_dev;
@@ -78,11 +80,12 @@ struct usb_eleduino_ts {
   struct urb *irq;
   
   u8 *data;
+
   dma_addr_t data_dma;
-};
+} usb_eleduino_ts_t;
 
 /* Structure of the touchevent */
-struct eleduino_ts_event
+typedef struct
 {
 	u16 x1;
 	u16 y1;
@@ -97,7 +100,8 @@ struct eleduino_ts_event
 	u16 y5;
 	u8 points;
 #endif
+	u8 touched;
 	struct timeval time;	/* Time when event rises */
-};
+} eleduino_ts_event_t;
 
 #endif	/* ELEDUINO_TS_H */
