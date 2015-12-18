@@ -51,39 +51,45 @@ MODULE_LICENSE(DRIVER_LICENSE);
 #define USB_DEVICE_ID   0x0005
 
 /* Prototype for touch processor tasklet */
-void usb_eleduino_ts_do_tasklet(unsigned long);
-DECLARE_TASKLET(eleduino_ts_tasklet, usb_eleduino_ts_do_tasklet, 0);
+// void usb_eleduino_ts_do_tasklet(unsigned long);
+// DECLARE_TASKLET(eleduino_ts_tasklet, usb_eleduino_ts_do_tasklet, 0);
 
 
 static void usb_eleduino_ts_irq(struct urb *urb){
   usb_eleduino_ts_t *eleduino_ts = urb->context;
-  eleduino_ts_event_t* event;
-  u8* data = eleduino_ts->data;
+  eleduino_ts_event_t event;
   int status;
 
-  PRINT_COORDS(data);
+  PRINT_COORDS(eleduino_ts->data);
 
-  event = kzalloc(sizeof(eleduino_ts_event_t), GFP_ATOMIC);
-  if (event){
-    event->touched = data[0x01];
-    do_gettimeofday(&event->time);
-    EXTRACT_COORDS(event->x1, event->y1, data, 0x02);
+  
+  event.touched = eleduino_ts->data[0x01];
+  do_gettimeofday(&event.time);
+  EXTRACT_COORDS(event.x1, event.y1, eleduino_ts->data, 0x02);
+  
 #ifdef ELEDUINO_TS_USE_MULTITOUCH
-    event->points = data[0x07];
-    EXTRACT_COORDS(event->x2, event->y2, data, 0x08);
-    EXTRACT_COORDS(event->x3, event->y3, data, 0x0C);
-    EXTRACT_COORDS(event->x4, event->y4, data, 0x10);
-    EXTRACT_COORDS(event->x5, event->y5, data, 0x15);
+  event->points = eleduino_ts->data[0x07];
+  switch (event->points){
+    case 5:
+      EXTRACT_COORDS(event.x5, event.y5, eleduino_ts->data, 0x15);
+    case 4:
+      EXTRACT_COORDS(event.x4, event.y4, eleduino_ts->data, 0x10);
+    case 3:
+      EXTRACT_COORDS(event.x3, event.y3, eleduino_ts->data, 0x0C);
+    case 2:
+      EXTRACT_COORDS(event.x2, event.y2, eleduino_ts->data, 0x08);
+    break;
+  }
 #endif
     // add event at the end of queue
-    list_add_tail(&event->list, &eleduino_ts_events->list);
-  }
+    // list_add_tail(&event->list, &eleduino_ts_events->list);
+  
 
   /* Schedule tasklet if touches ends */
-  if (!event->touched) {
-    eleduino_ts_tasklet.data = (unsigned long)&eleduino_ts;
-    tasklet_schedule(&eleduino_ts_tasklet);
-  }
+  // if (!event->touched) {
+  //   eleduino_ts_tasklet.data = (unsigned long)&eleduino_ts;
+  //   tasklet_schedule(&eleduino_ts_tasklet);
+  // }
 
   status = usb_submit_urb(urb, GFP_ATOMIC);
   if (status && &eleduino_ts->usb_dev->dev)
@@ -219,7 +225,7 @@ static void usb_eleduino_ts_disconnect(struct usb_interface *intf){
   usb_set_intfdata(intf, NULL);
 
   /* Make sure that no tasklets avaliable */
-  tasklet_disable(&eleduino_ts_tasklet); 
+  // tasklet_disable(&eleduino_ts_tasklet); 
 
   if (eleduino_ts){
     kfree(dev->absinfo);
@@ -254,7 +260,7 @@ static int __init usb_eleduino_ts_init(void){
 
   eleduino_ts_events = kzalloc(sizeof(eleduino_ts_event_t), GFP_KERNEL);
 
-  INIT_LIST_HEAD(&eleduino_ts_events->list);
+  // INIT_LIST_HEAD(&eleduino_ts_events->list);
 
   if (!eleduino_ts_events)
     result = -ENOMEM;
@@ -263,21 +269,21 @@ static int __init usb_eleduino_ts_init(void){
 }
 
 static void __exit usb_eleduino_ts_exit(void){
-  tasklet_kill(&eleduino_ts_tasklet);
+  // tasklet_kill(&eleduino_ts_tasklet);
   kfree(eleduino_ts_events);
   usb_deregister(&usb_eleduino_ts_driver);
 }
 
 
-void usb_eleduino_ts_do_tasklet(unsigned long eleduino_ts_addr){
-  usb_eleduino_ts_t *eleduino_ts = (usb_eleduino_ts_t *)eleduino_ts_addr;
+// void usb_eleduino_ts_do_tasklet(unsigned long eleduino_ts_addr){
+//   usb_eleduino_ts_t *eleduino_ts = (usb_eleduino_ts_t *)eleduino_ts_addr;
 
-  KMSG_DEBUG("start tasklet");
+//   KMSG_DEBUG("start tasklet");
 
-  if (eleduino_ts_events && list_empty(&eleduino_ts_events->list))
-    process_gesture(eleduino_ts_events, eleduino_ts->input_dev);
+//   if (eleduino_ts_events && list_empty(&eleduino_ts_events->list))
+//     process_gesture(eleduino_ts_events, eleduino_ts->input_dev);
 
-}
+// }
 
 module_init(usb_eleduino_ts_init);
 module_exit(usb_eleduino_ts_exit);
