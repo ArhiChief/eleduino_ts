@@ -69,3 +69,13 @@ endif
 rebuild:
 	make clean
 	make
+
+install:
+	cp -f *.conf /etc/modprobe.d/
+	cp -f *.rules /etc/udevd/rules.d/
+	cp -f eleduino_ts.ko /usr/lib/modules/$(shell uname -r)/
+
+remove:
+	rm -f /etc/modprobe.d/10-eleduino_ts.*
+	rm -f /etc/udevd/rules.d/10-eleduino_ts.*
+	rm -f /usr/lib/modules/$(shell uname -r)/eleduino_ts.ko
