@@ -32,10 +32,17 @@
 #include "misc.h"
 
 /*
- *  Determines whenever point [x;y] is in square {[x2;y2], [x3;y3]}
+ *  Determines whenever point [x;y] is in rectangle {[x2;y2], [x3;y3]}
  */
-#define POINT_IN_SQUARE(x, y, x1, x2, x3, x4) (x > x1 && y > y1 && x < x2 && y < y2)
+#define POINT_IN_RECT(x, y, x1, x2, x3, x4) (x > x1 && y > y1 && x < x2 && y < y2)
 
+#define POINT_IN_VWEEL_AREA(x, y) \
+ POINT_IN_RECT(x, y, TOUCHSCREEN_MIN_X, TOUCHSCREEN_MIN_Y, TOUCHSCREEN_MIN_X + VERT_WHEEL_AREA, TOUCHSCREEN_MAX_Y) || \
+ POINT_IN_RECT(x, y, TOUCHSCREEN_MAX_X - VERT_WHEEL_AREA, TOUCHSCREEN_MIN_Y, TOUCHSCREEN_MAX_X, TOUCHSCREEN_MAX_Y)
+
+#define POINT_IN_HWEEL_AREA(x, y) \
+ POINT_IN_RECT(x, y, TOUCHSCREEN_MIN_X, TOUCHSCREEN_MIN_Y, TOUCHSCREEN_MAX_X, TOUCHSCREEN_MIN_Y + HORIZ_WHEEL_AREA) || \
+ POINT_IN_RECT(x, y, TOUCHSCREEN_MIN_X, TOUCHSCREEN_MAX_Y - HORIZ_WHEEL_AREA, TOUCHSCREEN_MAX_X, TOUCHSCREEN_MAX_Y)
 
 enum fsm_states {
 	initial = 0,
