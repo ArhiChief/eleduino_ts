@@ -29,10 +29,12 @@
 #include <linux/time.h>
 #include <linux/usb/input.h>
 #include <linux/usb.h>
-#include <linux/list.h>
 #include <linux/types.h>
 
 /* ===== Driver onfiguration ===== */
+
+#define USB_VENDOR_ID   0x0eef
+#define USB_DEVICE_ID   0x0005
 
 /* Display resolution parametrs */
 #define TOUCHSCREEN_MIN_X 					0 			
@@ -62,8 +64,6 @@
 /* Structure of the touchevent */
 typedef struct
 {
-	struct list_head list;
-	
 	struct timeval time;	/* Time when event rises */
 
 	u16 x1;

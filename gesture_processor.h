@@ -28,6 +28,6 @@
 #include "eleduino_ts.h"
 
 /* process points queue of gesture */
-int process_gesture(eleduino_ts_event_t *, const struct input_dev *);
+int process_gesture(const eleduino_ts_event_t *, struct input_dev *);
 
 #endif	/* GESTURE_PROCESSOR_H */
